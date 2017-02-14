@@ -50,6 +50,34 @@ def mcs_score(game, player):
     wins, sims = mcs(game, player, 20, 2)
     return wins / sims
 
+def aggressive_score(game, player):
+    opponent = game.get_opponent(player)
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(opponent))
+
+    if own_moves == 0 and game.active_player == player:
+        return float("-inf")
+
+    if opp_moves == 0 and game.active_player == opponent:
+        return float("inf")
+
+    return float(blank_spaces - opp_moves)
+
+def balanced_score(game, player):
+    opponent = game.get_opponent(player)
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(opponent))
+
+    if own_moves == 0 and game.active_player == player:
+        return float("-inf")
+
+    if opp_moves == 0 and game.active_player == opponent:
+        return float("inf")
+
+    blank_spaces = len(game.get_blank_spaces())
+
+    return float(own_moves) / (blank_spaces - opp_moves)
+
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
@@ -72,34 +100,7 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    opponent = game.get_opponent(player)
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(opponent))
-
-    if own_moves == 0 and game.active_player == player:
-        return float("-inf")
-
-    if opp_moves == 0 and game.active_player == opponent:
-        return float("inf")
-
-    # blank_spaces = len(game.get_blank_spaces())
-    # total_spaces = game.width * game.height
-    # stage = 1.0 * blank_spaces / total_spaces
-    #
-    # if stage >= 0.5:
-    #     return float(own_moves - opp_moves)
-    # elif stage < 0.5:
-    wins, sims = mcs(game, player, 20, 2)
-    return wins / sims
-    # if sims > 2:
-    #     return wins / sims
-    # else:
-    #     return float(own_moves - opp_moves) / blank_spaces
-    # else:
-    #     return float(own_moves - opp_moves)
-
-    return score
-
+    return balanced_score(game, player)
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
