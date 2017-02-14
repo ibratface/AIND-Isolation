@@ -14,6 +14,27 @@ class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
 
+def monte_carlo_score(game, player, max_sims, max_time, stage):
+    wins = 0
+    sims = 0
+    time_start = player.time_left()
+
+    while sims < max_sims and time_start - player.time_left() < max_time:
+        if player.time_left() < 1:
+            raise Timeout()
+            # print('Monte Carlo ran out of time at stage: {} simulation number: {}'.format(stage, sims))
+        sim = game.copy()
+        while True:
+            moves = sim.get_legal_moves(sim.active_player)
+            if moves:
+                sim.apply_move(moves[randint(0, len(moves) - 1)])
+            else:
+                if player == sim.inactive_player:
+                    wins += 1
+                break
+        sims += 1
+
+    return wins, sims + 1
 
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -37,15 +58,32 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    if game.is_loser(player):
+    opponent = game.get_opponent(player)
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(opponent))
+
+    if own_moves == 0 and game.active_player == player:
         return float("-inf")
 
-    if game.is_winner(player):
+    if opp_moves == 0 and game.active_player == opponent:
         return float("inf")
 
-    own_moves = len(game.get_legal_moves(player)) * 3
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    score = float(own_moves - opp_moves) / len(game.get_blank_spaces())
+    # blank_spaces = len(game.get_blank_spaces())
+    # total_spaces = game.width * game.height
+    # stage = 1.0 * blank_spaces / total_spaces
+    #
+    # if stage >= 0.5:
+    #     return float(own_moves - opp_moves)
+    # elif stage < 0.5:
+    wins, sims = monte_carlo_score(game, player, 20, 2, 0)
+    return wins / sims
+    # if sims > 2:
+    #     return wins / sims
+    # else:
+    #     return float(own_moves - opp_moves) / blank_spaces
+    # else:
+    #     return float(own_moves - opp_moves)
+
     return score
 
 
@@ -143,7 +181,7 @@ class CustomPlayer:
                 depth = 1
             else:
                 depth = self.search_depth
-            while depth <= self.search_depth and best_move != (-1, -1):
+            while self.iterative or depth <= self.search_depth:
                 # print('depth: ', depth)
                 # print('search_depth: ', self.search_depth)
                 if self.method == 'alphabeta':
@@ -197,8 +235,7 @@ class CustomPlayer:
             return (0.0, (-1, -1))
 
         if depth < 2:
-            player = game.active_player if maximizing_player else game.get_opponent(game.active_player)
-            scores = [ (self.score(game.forecast_move(m), player), m) for m in moves ]
+            scores = [ (self.score(game.forecast_move(m), self), m) for m in moves ]
         else:
             # recurse
             scores = [ (self.minimax(game.forecast_move(m), depth-1, not maximizing_player)[0], m) for m in moves ]
@@ -251,25 +288,45 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise Timeout()
-
         moves = game.get_legal_moves(game.active_player)
         if len(moves) < 1:
             return (0.0, (-1, -1))
 
         scores = []
-        for m in moves:
-            if depth < 2:
-                score = self.score(game.forecast_move(m), self)
+        if depth < 2:
+            if maximizing_player:
+                for m in moves:
+                    score = self.score(game.forecast_move(m), self)
+                    scores.append((score, m))
+                    if score > alpha:
+                        alpha = score
+                    if beta <= alpha:
+                        break
             else:
-                score = self.alphabeta(game.forecast_move(m), depth-1, alpha, beta, not maximizing_player)[0]
-            scores.append((score, m))
-            if maximizing_player and score > alpha:
-                alpha = score
-            elif not maximizing_player and score < beta:
-                beta = score
-            if beta <= alpha: break
+                for m in moves:
+                    score = self.score(game.forecast_move(m), self)
+                    scores.append((score, m))
+                    if score < beta:
+                        beta = score
+                    if beta <= alpha:
+                        break
+        else:
+            if maximizing_player:
+                for m in moves:
+                    score = self.alphabeta(game.forecast_move(m), depth-1, alpha, beta, not maximizing_player)[0]
+                    scores.append((score, m))
+                    if score > alpha:
+                        alpha = score
+                    if beta <= alpha:
+                        break
+            else:
+                for m in moves:
+                    score = self.alphabeta(game.forecast_move(m), depth-1, alpha, beta, not maximizing_player)[0]
+                    scores.append((score, m))
+                    if score < beta:
+                        beta = score
+                    if beta <= alpha:
+                        break
         best_score = max(scores) if maximizing_player else min(scores)
         # print ('depth: ', depth)
         # print('len(scores): ', len(scores))
