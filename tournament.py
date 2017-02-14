@@ -27,11 +27,12 @@ from collections import namedtuple
 
 from isolation import Board
 from sample_players import RandomPlayer
+from sample_players import GreedyPlayer
 from sample_players import null_score
 from sample_players import open_move_score
 from sample_players import improved_score
 from game_agent import CustomPlayer
-from game_agent import custom_score
+from game_agent import custom_score, mcs_score
 
 NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
@@ -153,15 +154,19 @@ def main():
                        "MM_" + name) for name, h in HEURISTICS]
     ab_agents = [Agent(CustomPlayer(score_fn=h, **AB_ARGS),
                        "AB_" + name) for name, h in HEURISTICS]
-    random_agents = [Agent(RandomPlayer(), "Random")]
+    random_agents = [Agent(RandomPlayer(), "Random"), Agent(GreedyPlayer(), "Greedy")]
 
     # ID_Improved agent is used for comparison to the performance of the
     # submitted agent for calibration on the performance across different
     # systems; i.e., the performance of the student agent is considered
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
-    test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-                   Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")]
+    test_agents = [
+        # Agent(GreedyPlayer(score_fn=open_move_score), "Greedy"),
+        # Agent(CustomPlayer(score_fn=open_move_score, **CUSTOM_ARGS), "Open Move"),
+        Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
+        Agent(CustomPlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student"),
+    ]
 
     print(DESCRIPTION)
     for agentUT in test_agents:

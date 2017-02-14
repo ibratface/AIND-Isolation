@@ -14,15 +14,15 @@ class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
 
-def monte_carlo_score(game, player, max_sims, max_time, stage):
+def mcs(game, player, max_sims, max_time, stage=0):
     wins = 0
     sims = 0
     time_start = player.time_left()
 
     while sims < max_sims and time_start - player.time_left() < max_time:
         if player.time_left() < 1:
-            raise Timeout()
             # print('Monte Carlo ran out of time at stage: {} simulation number: {}'.format(stage, sims))
+            raise Timeout()
         sim = game.copy()
         while True:
             moves = sim.get_legal_moves(sim.active_player)
@@ -35,6 +35,20 @@ def monte_carlo_score(game, player, max_sims, max_time, stage):
         sims += 1
 
     return wins, sims + 1
+
+def mcs_score(game, player):
+    opponent = game.get_opponent(player)
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(opponent))
+
+    if own_moves == 0 and game.active_player == player:
+        return float("-inf")
+
+    if opp_moves == 0 and game.active_player == opponent:
+        return float("inf")
+
+    wins, sims = mcs(game, player, 20, 2)
+    return wins / sims
 
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -75,7 +89,7 @@ def custom_score(game, player):
     # if stage >= 0.5:
     #     return float(own_moves - opp_moves)
     # elif stage < 0.5:
-    wins, sims = monte_carlo_score(game, player, 20, 2, 0)
+    wins, sims = mcs(game, player, 20, 2)
     return wins / sims
     # if sims > 2:
     #     return wins / sims
@@ -231,8 +245,8 @@ class CustomPlayer:
             raise Timeout()
 
         moves = game.get_legal_moves(game.active_player)
-        if len(moves) < 1:
-            return (0.0, (-1, -1))
+        if not moves:
+            return (game.utility(self), (-1, -1))
 
         if depth < 2:
             scores = [ (self.score(game.forecast_move(m), self), m) for m in moves ]
@@ -289,8 +303,8 @@ class CustomPlayer:
             raise Timeout()
 
         moves = game.get_legal_moves(game.active_player)
-        if len(moves) < 1:
-            return (0.0, (-1, -1))
+        if not moves:
+            return (game.utility(self), (-1, -1))
 
         scores = []
         if depth < 2:
