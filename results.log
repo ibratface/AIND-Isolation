@@ -1,4 +1,24 @@
 *************************
+ Evaluating: ID_Improved
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_Improved vs   Random    	Result: 35 to 5
+  Match 2: ID_Improved vs   Greedy    	Result: 24 to 16
+  Match 3: ID_Improved vs   MM_Null   	Result: 27 to 13
+  Match 4: ID_Improved vs   MM_Open   	Result: 16 to 24
+  Match 5: ID_Improved vs MM_Improved 	Result: 20 to 20
+  Match 6: ID_Improved vs   AB_Null   	Result: 24 to 16
+  Match 7: ID_Improved vs   AB_Open   	Result: 23 to 17
+  Match 8: ID_Improved vs AB_Improved 	Result: 24 to 16
+
+
+Results:
+----------
+ID_Improved         60.31%
+
+*************************
 Evaluating: Student Aggressive
 *************************
 
