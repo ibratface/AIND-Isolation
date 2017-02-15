@@ -61,6 +61,8 @@ def aggressive_score(game, player):
     if opp_moves == 0 and game.active_player == opponent:
         return float("inf")
 
+    blank_spaces = len(game.get_blank_spaces())
+
     return float(blank_spaces - opp_moves)
 
 def balanced_score(game, player):
@@ -76,7 +78,7 @@ def balanced_score(game, player):
 
     blank_spaces = len(game.get_blank_spaces())
 
-    return float(own_moves) / (blank_spaces - opp_moves)
+    return float(own_moves) * (blank_spaces - opp_moves)
 
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
