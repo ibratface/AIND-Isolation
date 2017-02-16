@@ -61,7 +61,7 @@ def aggressive_score(game, player):
     if opp_moves == 0 and game.active_player == opponent:
         return float("inf")
 
-    blank_spaces = len(game.get_blank_spaces())
+    blank_spaces = game.height * game.width - game.move_count - 2
 
     return float(blank_spaces - opp_moves)
 
@@ -76,7 +76,7 @@ def balanced_score(game, player):
     if opp_moves == 0 and game.active_player == opponent:
         return float("inf")
 
-    blank_spaces = len(game.get_blank_spaces())
+    blank_spaces = game.height * game.width - game.move_count - 2
 
     return float(own_moves) * (blank_spaces - opp_moves)
 
@@ -102,7 +102,7 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    return balanced_score(game, player)
+    return mcs_score(game, player)
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
