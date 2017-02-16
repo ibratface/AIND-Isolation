@@ -47,7 +47,7 @@ def mcs_score(game, player):
     if opp_moves == 0 and game.active_player == opponent:
         return float("inf")
 
-    wins, sims = mcs(game, player, 20, 2)
+    wins, sims = mcs(game, player, 50, 2)
     return wins / sims
 
 def aggressive_score(game, player):
@@ -315,36 +315,39 @@ class CustomPlayer:
                 for m in moves:
                     score = self.score(game.forecast_move(m), self)
                     scores.append((score, m))
+                    if score >= beta:
+                        break;
                     if score > alpha:
                         alpha = score
-                    if beta <= alpha:
-                        break
+                best_score = max(scores)
             else:
                 for m in moves:
                     score = self.score(game.forecast_move(m), self)
                     scores.append((score, m))
+                    if score <= alpha:
+                        break
                     if score < beta:
                         beta = score
-                    if beta <= alpha:
-                        break
+                best_score = min(scores)
         else:
             if maximizing_player:
                 for m in moves:
                     score = self.alphabeta(game.forecast_move(m), depth-1, alpha, beta, not maximizing_player)[0]
                     scores.append((score, m))
+                    if score >= beta:
+                        break;
                     if score > alpha:
                         alpha = score
-                    if beta <= alpha:
-                        break
+                best_score = max(scores)
             else:
                 for m in moves:
                     score = self.alphabeta(game.forecast_move(m), depth-1, alpha, beta, not maximizing_player)[0]
                     scores.append((score, m))
+                    if score <= alpha:
+                        break
                     if score < beta:
                         beta = score
-                    if beta <= alpha:
-                        break
-        best_score = max(scores) if maximizing_player else min(scores)
+                best_score = min(scores)
         # print ('depth: ', depth)
         # print('len(scores): ', len(scores))
         # print('scores: ', scores)
