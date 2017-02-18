@@ -123,7 +123,7 @@ Unfortunately, it did not seem to do much better than the previous strategy, alt
 
 ### Monte Carlo
 
-The last strategy uses Monte Carlo (MC) simulations to estimate the viability of a move or board state. Starting from a board state we simulate a game with random moves to the end state and recording if its a win or loss. By running several simulations, we can obtain the ratio of wins over the number of simulations or in essence, a 'probability of winning' for that move. This somewhat dampens the horizon effect and gives our player a 'blurry' glimpse of the future.
+The last strategy uses a simple Monte Carlo (MC) tree search to estimate the viability of a move or board state. Starting from a board state we simulate a game with random moves to the end state and recording if its a win or loss. By running several simulations, we can obtain the ratio of wins over the number of simulations or in essence, a 'probability of winning' for that move. This somewhat counters the horizon effect and gives our player a 'blurry' glimpse of the future.
 
 There were some hurdles getting this to work with the project setup, particularly with Iterative Deepening. It didn't seem particularly efficient to throw away perfectly good MC estimates so some tuning was necessary. After several trials, the optimal strategy seems to be applying a **time limit of 2ms** and a **max simulation count of 50** for evaluating each board state. The max simulation count doesn't matter as much as long as we set it to a sufficiently high value since the function tends to run out of time more often than not.
 
@@ -152,7 +152,7 @@ Student MCS         74.29%
 
 The result is a very encouraging **74.29%**. In other tournament runs, winrates were consistently above 70%. Moreover, it beats every other player by a decisive margin in each match.
 
-All in all, this is a rather primitive implementation of Monte Carlo Tree Search. Additional improvements can be made by applying heuristics to the sampling of movesets, for example. It's definitely possible to achieve much higher winrates with further refinement.
+All in all, this is a rather primitive implementation of Monte Carlo Tree Search. Additional improvements can be made by constrained sampling of movesets based on heuristics during simulation, for example. It's definitely possible to achieve much higher winrates with if MCTS was designed with more sophistication.
 
 <br>
 
