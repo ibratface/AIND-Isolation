@@ -31,8 +31,8 @@ from sample_players import GreedyPlayer
 from sample_players import null_score
 from sample_players import open_move_score
 from sample_players import improved_score
-from game_agent import CustomPlayer
-from game_agent import custom_score, mcs_score, balanced_score, aggressive_score
+from sample_players import SamplePlayer
+from sample_players import custom_score, mcs_score, balanced_score, aggressive_score
 
 NUM_MATCHES = 10  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
@@ -150,9 +150,9 @@ def main():
     # (MM=minimax, AB=alpha-beta) and the heuristic function (Null=null_score,
     # Open=open_move_score, Improved=improved_score). For example, MM_Open is
     # an agent using minimax search with the open moves heuristic.
-    mm_agents = [Agent(CustomPlayer(score_fn=h, **MM_ARGS),
+    mm_agents = [Agent(SamplePlayer(score_fn=h, **MM_ARGS),
                        "MM_" + name) for name, h in HEURISTICS]
-    ab_agents = [Agent(CustomPlayer(score_fn=h, **AB_ARGS),
+    ab_agents = [Agent(SamplePlayer(score_fn=h, **AB_ARGS),
                        "AB_" + name) for name, h in HEURISTICS]
     random_agents = [Agent(RandomPlayer(), "Random"), Agent(GreedyPlayer(), "Greedy")]
 
@@ -162,12 +162,10 @@ def main():
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
     test_agents = [
-        # Agent(GreedyPlayer(score_fn=open_move_score), "Greedy"),
-        # Agent(CustomPlayer(score_fn=open_move_score, **CUSTOM_ARGS), "Open Move"),
-        # Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-        Agent(CustomPlayer(score_fn=aggressive_score, **CUSTOM_ARGS), "Student Aggressive"),
-        Agent(CustomPlayer(score_fn=balanced_score, **CUSTOM_ARGS), "Student Balanced"),
-        Agent(CustomPlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
+        # Agent(SamplePlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
+        # Agent(SamplePlayer(score_fn=aggressive_score, **CUSTOM_ARGS), "Student Aggressive"),
+        # Agent(SamplePlayer(score_fn=balanced_score, **CUSTOM_ARGS), "Student Balanced"),
+        Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
     ]
 
     print(DESCRIPTION)
