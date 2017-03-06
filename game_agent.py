@@ -17,16 +17,15 @@ class Timeout(Exception):
 
 class Node:
 
-    def __init__(self, game, move=None, parent = None):
+    def __init__(self, move=None, parent = None):
         self.utility = 0.
         self.visits = 0.
         self.move = move
-        self.game = game
         self.parent = parent
         self.children = []
 
     def uct(self):
-        val = self.utility/self.visits + math.sqrt(2. * math.log(self.parent.visits) / self.visits)
+        val = (self.utility / self.visits) + (math.sqrt(math.log(self.parent.visits) / self.visits) * 0.8)
         # print ('UCT: ', self.visits, self.parent.visits, self.utility, val)
         # print (self.game.to_string())
         return val
@@ -34,7 +33,17 @@ class Node:
     def score(self):
         return 0 if self.visits == 0 else self.utility / self.visits
 
-    def __select__(self, node):
+
+class CustomPlayer:
+
+    def __init__(self, data=None, timeout=1.):
+        self.time_left = None
+        self.TIMER_THRESHOLD = timeout
+        self.root = None
+
+    def select(self, node):
+        # if self.time_left() < self.TIMER_THRESHOLD:
+        #     raise Timeout("Select() {}".format(self.time_left()))
         if node.visits == 0 or not node.children:
             return node
         for c in node.children:
@@ -49,56 +58,70 @@ class Node:
                 maxnode = c
         # print ('SELECT Node: ')
         # print (node.game.to_string())
-        return self.__select__(maxnode)
+        return self.select(maxnode)
 
-    def select(self):
-        return self.__select__(self)
+    def forward(self, state, node):
+        moves = []
+        while node.parent:
+            moves.append(node.move)
+            node = node.parent
+        # print (moves)
+        moves.reverse()
+        forecast = state.copy()
+        for m in moves:
+            forecast.apply_move(m)
+        return forecast
 
-    def expand(self):
-        if len(self.children) == 0:
-            moves = self.game.get_legal_moves(self.game.active_player)
-            if moves: self.children = [ Node(self.game.forecast_move(m), m, self) for m in moves ]
+    def expand(self, node, state):
+        # print ("Inside Expand: {}".format(self.time_left()))
+        #
+        # if self.time_left() < self.TIMER_THRESHOLD:
+        #     raise Timeout("Expand() {}".format(self.time_left()))
 
-    def rollout(self):
-        sim = self.game.copy()
+        if len(node.children) == 0:
+            moves = state.get_legal_moves(state.active_player)
+            for m in moves:
+                node.children.append(Node(m, node))
+
+    def rollout(self, node, state):
+        sim = state.forecast_move(node.move)
         moves = sim.get_legal_moves(sim.active_player)
         while moves:
+            # if self.time_left() < self.TIMER_THRESHOLD:
+            #     raise Timeout("Rollout() {}".format(self.time_left()))
             sim.apply_move(moves[random.randint(0, len(moves) - 1)])
             moves = sim.get_legal_moves(sim.active_player)
-        return 1 if sim.inactive_player == self.parent.game.active_player else 0
+        return 1 if sim.inactive_player == state.active_player else 0
 
-    def simulate(self, player):
-        if self.children:
-            c = self.children[random.randint(0, len(self.children) - 1)]
-            c.backpropagate(c.rollout())
-        # for c in self.children:
-        #     sim = c.rollout()
-        #     c.backpropagate(1 if sim.inactive_player == c.game.active_player else 0)
+    def simulate(self, node, state):
+        # if self.time_left() < self.TIMER_THRESHOLD:
+        #     raise Timeout("Simulate() {}".format(self.time_left()))
 
-    def backpropagate(self, score):
-        self.visits += 1
-        self.utility += score
-        if self.parent:
-            self.parent.backpropagate(1 - score)
+        if node.children:
+            c = node.children[random.randint(0, len(node.children) - 1)]
+            self.backpropagate(c, self.rollout(c, state))
+        else:
+            # terminal node, backprop a win
+            self.backpropagate(node, 1)
+        # for c in node.children:
+        #     self.backpropagate(c, self.rollout(c, state))
 
-    def advance(self, move):
+    def backpropagate(self, node, score):
+        node.visits += 1
+        node.utility += score
+        if node.parent:
+            self.backpropagate(node.parent, 1 - score)
+
+    def advance(self, node, move):
         # print (self.game.active_player)
         # print (self.game.get_legal_moves())
         # print (move)
         # print (self.game.to_string())
-        for c in self.children:
+        for c in node.children:
             if c.move == move:
                 c.parent = None
                 return c
         # assert False
-
-
-class CustomPlayer:
-
-    def __init__(self, data=None, timeout=1.):
-        self.time_left = None
-        self.TIMER_THRESHOLD = timeout
-        self.root = None
 
     def get_move(self, game, time_left):
         self.time_left = time_left
@@ -113,39 +136,52 @@ class CustomPlayer:
         # print (game.to_string())
 
         if game.move_count < 4:
-            self.root = Node(game)
+            self.root = Node()
+            self.expand(self.root, game)
         elif self.root:
             # maintain consistency with game state
             # advance to the node that reflects game state
             opponent = game.get_opponent(self)
             opp_move = game.get_player_location(opponent)
-            self.root = self.root.advance(opp_move)
+            self.root = self.advance(self.root, opp_move)
 
         best_move = (-1, -1)
 
         if self.root:
             # Do mcts while we have time
             try:
-                while time_left() > self.TIMER_THRESHOLD:
-                    node = self.root.select()
-                    node.expand()
-                    node.simulate(self)
-            except Timeout:
-                print ('TIIMEOUT!!!')
+                while self.time_left() > self.TIMER_THRESHOLD:
+                    # print ("Before Select: {}".format(self.time_left()))
+                    node = self.select(self.root)
+                    # if self.time_left() < self.TIMER_THRESHOLD: break
+                    # print ("Before Forward: {}".format(self.time_left()))
+                    state = self.forward(game, node)
+                    # if self.time_left() < self.TIMER_THRESHOLD: break
+                    # print ("Before Expand: {}".format(self.time_left()))
+                    self.expand(node, state)
+                    # if self.time_left() < self.TIMER_THRESHOLD: break
+                    # print ("Before Simulate: {}".format(self.time_left()))
+                    self.simulate(node, state)
+            except Timeout as e:
+                print (e)
                 pass
 
-            # Pick the best move
+            # if self.time_left() < 0:
+            #     print ('TIME EXCEEDED! {}'.format(self.time_left()))
+                # assert False
+
+            # Pick the best move if any
             if self.root.children:
-                scores = [ (c.score(), c.move) for c in self.root.children ]
-                _, best_move = max(scores)
-                print ('SCORES: ', scores)
+                scores = [ (c.score(), c.move, c.visits) for c in self.root.children ]
+                _, best_move, _ = max(scores)
+                # print ('SCORES: ', scores)
                 # print ('BEST_MOVE:', best_move)
-                self.root = self.root.advance(best_move)
+                self.root = self.advance(self.root, best_move)
         else:
             own_moves = game.get_legal_moves(self)
             if own_moves: best_move = own_moves[0]
 
-        print ('BEST_MOVE:', best_move)
-        print (game.to_string())
+        # print ('BEST_MOVE:', best_move)
+        # print (game.to_string())
 
         return best_move
