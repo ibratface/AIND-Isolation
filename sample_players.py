@@ -175,6 +175,48 @@ def custom_score(game, player):
     return mcs_score(game, player)
 
 
+directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
+              (1, -2),  (1, 2), (2, -1),  (2, 1)]
+
+
+def get_max_depth(pos, blanks, depth=0, max_depth=0):
+    if max_depth < depth:
+        max_depth = depth
+
+    valid_moves = [ pos + d for d in directions if pos + d in blanks ]
+    for m in valid_moves:
+        blanks.remove(m)
+        max_depth = get_max_depth(m, blanks, depth+1, max_depth)
+        blanks.append(m)
+
+    return max_depth
+
+
+def depth_score(game, player):
+    opponent = game.get_opponent(player)
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(opponent))
+
+    if opp_moves == 0 and own_moves > 0:
+        return float("inf")
+    elif own_moves == 0:
+        return float("-inf")
+
+    total_spaces = game.height * game.width
+    blank_spaces = total_spaces - game.move_count
+    # stage = 1. * game.move_count / total_spaces * 100
+    #
+    # if stage < 65:
+    #     wins, sims = mcs(game, player, 50, 2)
+    #     score = wins / sims
+    #     # score = (1. - opp_moves / blank_spaces)
+    # else:
+    own_pos = game.get_player_location(player)
+    #opp_pos = game.get_player_location(opponent)
+    blanks = game.get_blank_spaces()
+    score = get_max_depth(own_pos, blanks) #- get_max_depth(opp_pos, blanks)
+    return score
+
 class SamplePlayer:
     def __init__(self, data=None, timeout=10., search_depth=3, score_fn=custom_score,
                  iterative=True, method='minimax'):

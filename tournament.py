@@ -32,9 +32,11 @@ from sample_players import null_score
 from sample_players import open_move_score
 from sample_players import improved_score
 from sample_players import SamplePlayer
-from sample_players import custom_score, mcs_score, balanced_score, aggressive_score
+from sample_players import custom_score, mcs_score, balanced_score, aggressive_score, depth_score
 
-NUM_MATCHES = 10  # number of matches against each opponent
+from game_agent import CustomPlayer
+
+NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
 
 TIMEOUT_WARNING = "One or more agents lost a match this round due to " + \
@@ -156,6 +158,11 @@ def main():
                        "AB_" + name) for name, h in HEURISTICS]
     random_agents = [Agent(RandomPlayer(), "Random"), Agent(GreedyPlayer(), "Greedy")]
 
+    strong_agents = [
+        Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
+        Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
+        ]
+
     # ID_Improved agent is used for comparison to the performance of the
     # submitted agent for calibration on the performance across different
     # systems; i.e., the performance of the student agent is considered
@@ -165,7 +172,9 @@ def main():
         # Agent(SamplePlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
         # Agent(SamplePlayer(score_fn=aggressive_score, **CUSTOM_ARGS), "Student Aggressive"),
         # Agent(SamplePlayer(score_fn=balanced_score, **CUSTOM_ARGS), "Student Balanced"),
-        Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
+        # Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
+        # Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
+        Agent(CustomPlayer(data=None, timeout=1.), "Student MCTS")
     ]
 
     print(DESCRIPTION)
@@ -175,7 +184,8 @@ def main():
         print("{:^25}".format("Evaluating: " + agentUT.name))
         print("*************************")
 
-        agents = random_agents + mm_agents + ab_agents + [agentUT]
+        agents = random_agents + mm_agents + ab_agents + strong_agents + [agentUT]
+        # agents = strong_agents + [agentUT]
         win_ratio = play_round(agents, NUM_MATCHES)
 
         print("\n\nResults:")
