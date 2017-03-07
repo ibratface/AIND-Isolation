@@ -8,7 +8,7 @@ relative strength using tournament.py and include the results in your report.
 """
 import random
 import math
-import operator
+
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
@@ -22,12 +22,12 @@ class Node:
         self.visits = 0.
         self.move = move
         self.parent = parent
-        self.children = []
+        self.children = None
 
 class CustomPlayer:
 
     DEFAULTS = {
-        'C': 0.35,
+        'C': 0.65,
         'rollout': 'random',
     }
 
@@ -72,10 +72,9 @@ class CustomPlayer:
             moves.append(node.move)
             node = node.parent
         # print (moves)
-        moves.reverse()
         forecast = state.copy()
-        for m in moves:
-            forecast.apply_move(m)
+        while moves:
+            forecast.apply_move(moves.pop())
         return forecast
 
     def expand(self, node, state):
@@ -84,10 +83,11 @@ class CustomPlayer:
         # if self.time_left() < self.TIMER_THRESHOLD:
         #     raise Timeout("Expand() {}".format(self.time_left()))
 
-        if len(node.children) == 0:
+        if not node.children:
             moves = state.get_legal_moves(state.active_player)
-            for m in moves:
-                node.children.append(Node(m, node))
+            node.children = [ Node(m, node) for m in moves ]
+            # for m in moves:
+            #     node.children.append(Node(m, node))
 
         # print ("Expand() End: {}".format(self.time_left()))
 
@@ -117,7 +117,7 @@ class CustomPlayer:
         # if self.time_left() < self.TIMER_THRESHOLD:
         #     raise Timeout("Rollout() {}".format(self.time_left()))
 
-        sim = state.forecast_move(node.move)
+        sim = state#.forecast_move(node.move)
         moves = sim.get_legal_moves(sim.active_player)
         while moves:
             # if self.time_left() < self.TIMER_THRESHOLD:
@@ -164,15 +164,7 @@ class CustomPlayer:
 
     def get_move(self, game, time_left):
         self.time_left = time_left
-
-        # opponent = game.get_opponent(self)
-        # own_moves = game.get_legal_moves(self)
-        # opp_moves = game.get_legal_moves(opponent)
-        # if len(own_moves) < 1:
-        #     return (-1, -1)
-        # print ('LEGAL MOVES:', own_moves)
-        # print ('move_count: ', game.move_count)
-        # print (game.to_string())
+        best_move = (-1, -1)
 
         if game.move_count < 4:
             self.root = Node()
@@ -184,26 +176,20 @@ class CustomPlayer:
             opp_move = game.get_player_location(opponent)
             self.root = self.advance(self.root, opp_move)
 
-        best_move = (-1, -1)
-
         if self.root:
             # Do mcts while we have time
-            try:
-                while self.time_left() > self.TIMER_THRESHOLD:
-                    # print ("Before Select(): {}".format(self.time_left()))
-                    node = self.select(self.root)
-                    # if self.time_left() < self.TIMER_THRESHOLD: break
-                    # print ("Before Forward(): {}".format(self.time_left()))
-                    state = self.forward(game, node)
-                    # if self.time_left() < self.TIMER_THRESHOLD: break
-                    # print ("Before Expand(): {}".format(self.time_left()))
-                    self.expand(node, state)
-                    # if self.time_left() < self.TIMER_THRESHOLD: break
-                    # print ("Before Simulate: {}".format(self.time_left()))
-                    self.simulate(node, state)
-            except Timeout as e:
-                print (e)
-                pass
+            while self.time_left() > self.TIMER_THRESHOLD:
+                # print ("Before Select(): {}".format(self.time_left()))
+                node = self.select(self.root)
+                # if self.time_left() < self.TIMER_THRESHOLD: break
+                # print ("Before Forward(): {}".format(self.time_left()))
+                state = self.forward(game, node)
+                # if self.time_left() < self.TIMER_THRESHOLD: break
+                # print ("Before Expand(): {}".format(self.time_left()))
+                self.expand(node, state)
+                # if self.time_left() < self.TIMER_THRESHOLD: break
+                # print ("Before Simulate: {}".format(self.time_left()))
+                self.simulate(node, state)
 
             # if self.time_left() < 0:
             #     print ('TIME EXCEEDED! {}'.format(self.time_left()))

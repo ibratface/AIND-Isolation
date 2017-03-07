@@ -23,6 +23,7 @@ import itertools
 import random
 import warnings
 import json
+import gc
 
 from collections import namedtuple
 
@@ -140,6 +141,7 @@ def play_round(agents, num_matches):
 
 
 def main():
+    gc.disable()
 
     HEURISTICS = [("Null", null_score),
                   ("Open", open_move_score),
@@ -176,16 +178,17 @@ def main():
         # Agent(SamplePlayer(score_fn=balanced_score, **CUSTOM_ARGS), "Student Balanced"),
         # Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
         # Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
-        Agent(CustomPlayer(), "Student MCTS Default")
+        # Agent(CustomPlayer(), "Student MCTS Default")
     ]
 
     # Cs = [0.35, 0.5, 0.65, 0.7, 0.75, 0.8, 0.9, 1.1]
+    # Cs = [0.65]
     # data = [ {'C': c, 'policy': 'random'} for c in Cs ]
     # mcts_agents = [ Agent(CustomPlayer(data=d), "Student MCTS C={}".format(d['C'])) for d in data]
     # test_agents.extend(mcts_agents)
 
-    # with open('data.json') as jsonfile:
-    #     test_agents.append(Agent(CustomPlayer(data=json.load(jsonfile), timeout=1.), "Student MCTS: JSONFILE"))
+    with open('data.json') as jsonfile:
+        test_agents.append(Agent(CustomPlayer(data=json.load(jsonfile), timeout=1.), "Student MCTS: JSONFILE"))
 
 
     print(DESCRIPTION)
