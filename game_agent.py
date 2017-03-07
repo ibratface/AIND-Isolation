@@ -24,22 +24,28 @@ class Node:
         self.parent = parent
         self.children = []
 
-    def uct(self):
-        val = (self.utility / self.visits) + (math.sqrt(math.log(self.parent.visits) / self.visits) * 0.8)
+class CustomPlayer:
+
+    DEFAULTS = {
+        'C': 0.35,
+        'rollout': 'random',
+    }
+
+    def __init__(self, data=DEFAULTS, timeout=1.):
+        self.time_left = None
+        self.TIMER_THRESHOLD = timeout
+        self.root = None
+        self.C = data.get('C', self.DEFAULTS['C'])
+        self.rollout = self.rollout_random
+
+    def uct(self, node):
+        val = (node.utility / node.visits) + (math.sqrt(math.log(node.parent.visits) / node.visits) * self.C)
         # print ('UCT: ', self.visits, self.parent.visits, self.utility, val)
         # print (self.game.to_string())
         return val
 
-    def score(self):
-        return 0 if self.visits == 0 else self.utility / self.visits
-
-
-class CustomPlayer:
-
-    def __init__(self, data=None, timeout=1.):
-        self.time_left = None
-        self.TIMER_THRESHOLD = timeout
-        self.root = None
+    def score(self, node):
+        return 0 if node.visits == 0 else node.utility / node.visits
 
     def select(self, node):
         # if self.time_left() < self.TIMER_THRESHOLD:
@@ -52,7 +58,7 @@ class CustomPlayer:
         maxnode = node
         maxuct = 0
         for c in node.children:
-            uct = c.uct()
+            uct = self.uct(c)
             if uct >= maxuct:
                 maxuct = uct
                 maxnode = c
@@ -73,7 +79,7 @@ class CustomPlayer:
         return forecast
 
     def expand(self, node, state):
-        # print ("Inside Expand: {}".format(self.time_left()))
+        # print ("Expand() Start: {}".format(self.time_left()))
         #
         # if self.time_left() < self.TIMER_THRESHOLD:
         #     raise Timeout("Expand() {}".format(self.time_left()))
@@ -83,7 +89,34 @@ class CustomPlayer:
             for m in moves:
                 node.children.append(Node(m, node))
 
-    def rollout(self, node, state):
+        # print ("Expand() End: {}".format(self.time_left()))
+
+    def improved_score(self, game):
+        own_moves = len(game.get_legal_moves(game.active_player))
+        opp_moves = len(game.get_legal_moves(game.inactive_player))
+
+        if opp_moves == 0 and own_moves > 0:
+            return float("inf")
+        elif own_moves == 0:
+            return float("-inf")
+
+        return own_moves - opp_moves
+
+    def rollout_improved(self, node, state):
+        sim = state.forecast_move(node.move)
+        moves = sim.get_legal_moves(sim.active_player)
+        while moves:
+            _, move = max([ (self.improved_score(sim.forecast_move(m)), m) for m in moves ])
+            sim.apply_move(move)
+            moves = sim.get_legal_moves(sim.active_player)
+        return 1 if sim.inactive_player == state.active_player else 0
+
+    def rollout_random(self, node, state):
+        # print ("Rollout() Start: {}".format(self.time_left()))
+        #
+        # if self.time_left() < self.TIMER_THRESHOLD:
+        #     raise Timeout("Rollout() {}".format(self.time_left()))
+
         sim = state.forecast_move(node.move)
         moves = sim.get_legal_moves(sim.active_player)
         while moves:
@@ -91,20 +124,26 @@ class CustomPlayer:
             #     raise Timeout("Rollout() {}".format(self.time_left()))
             sim.apply_move(moves[random.randint(0, len(moves) - 1)])
             moves = sim.get_legal_moves(sim.active_player)
+
+        # print ("Rollout() End: {}".format(self.time_left()))
         return 1 if sim.inactive_player == state.active_player else 0
 
     def simulate(self, node, state):
+        # print ("Simulate() Start: {}".format(self.time_left()))
+
         # if self.time_left() < self.TIMER_THRESHOLD:
         #     raise Timeout("Simulate() {}".format(self.time_left()))
 
         if node.children:
             c = node.children[random.randint(0, len(node.children) - 1)]
             self.backpropagate(c, self.rollout(c, state))
+            # for c in node.children:
+            #     self.backpropagate(c, self.rollout(c, state))
         else:
             # terminal node, backprop a win
             self.backpropagate(node, 1)
-        # for c in node.children:
-        #     self.backpropagate(c, self.rollout(c, state))
+
+        # print ("Simulate() End: {}".format(self.time_left()))
 
     def backpropagate(self, node, score):
         node.visits += 1
@@ -151,13 +190,13 @@ class CustomPlayer:
             # Do mcts while we have time
             try:
                 while self.time_left() > self.TIMER_THRESHOLD:
-                    # print ("Before Select: {}".format(self.time_left()))
+                    # print ("Before Select(): {}".format(self.time_left()))
                     node = self.select(self.root)
                     # if self.time_left() < self.TIMER_THRESHOLD: break
-                    # print ("Before Forward: {}".format(self.time_left()))
+                    # print ("Before Forward(): {}".format(self.time_left()))
                     state = self.forward(game, node)
                     # if self.time_left() < self.TIMER_THRESHOLD: break
-                    # print ("Before Expand: {}".format(self.time_left()))
+                    # print ("Before Expand(): {}".format(self.time_left()))
                     self.expand(node, state)
                     # if self.time_left() < self.TIMER_THRESHOLD: break
                     # print ("Before Simulate: {}".format(self.time_left()))
@@ -168,11 +207,11 @@ class CustomPlayer:
 
             # if self.time_left() < 0:
             #     print ('TIME EXCEEDED! {}'.format(self.time_left()))
-                # assert False
+            #     assert False
 
             # Pick the best move if any
             if self.root.children:
-                scores = [ (c.score(), c.move, c.visits) for c in self.root.children ]
+                scores = [ (self.score(c), c.move, c.visits) for c in self.root.children ]
                 _, best_move, _ = max(scores)
                 # print ('SCORES: ', scores)
                 # print ('BEST_MOVE:', best_move)

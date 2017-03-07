@@ -22,6 +22,7 @@ initiative in the second match with agentB at (5, 2) as player 1 and agentA at
 import itertools
 import random
 import warnings
+import json
 
 from collections import namedtuple
 
@@ -160,7 +161,7 @@ def main():
 
     strong_agents = [
         Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
-        Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
+        # Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
         ]
 
     # ID_Improved agent is used for comparison to the performance of the
@@ -168,14 +169,24 @@ def main():
     # systems; i.e., the performance of the student agent is considered
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
+
     test_agents = [
         # Agent(SamplePlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
         # Agent(SamplePlayer(score_fn=aggressive_score, **CUSTOM_ARGS), "Student Aggressive"),
         # Agent(SamplePlayer(score_fn=balanced_score, **CUSTOM_ARGS), "Student Balanced"),
         # Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
         # Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
-        Agent(CustomPlayer(data=None, timeout=1.), "Student MCTS")
+        Agent(CustomPlayer(), "Student MCTS Default")
     ]
+
+    # Cs = [0.35, 0.5, 0.65, 0.7, 0.75, 0.8, 0.9, 1.1]
+    # data = [ {'C': c, 'policy': 'random'} for c in Cs ]
+    # mcts_agents = [ Agent(CustomPlayer(data=d), "Student MCTS C={}".format(d['C'])) for d in data]
+    # test_agents.extend(mcts_agents)
+
+    # with open('data.json') as jsonfile:
+    #     test_agents.append(Agent(CustomPlayer(data=json.load(jsonfile), timeout=1.), "Student MCTS: JSONFILE"))
+
 
     print(DESCRIPTION)
     for agentUT in test_agents:
@@ -184,8 +195,8 @@ def main():
         print("{:^25}".format("Evaluating: " + agentUT.name))
         print("*************************")
 
-        agents = random_agents + mm_agents + ab_agents + strong_agents + [agentUT]
-        # agents = strong_agents + [agentUT]
+        # agents = random_agents + mm_agents + ab_agents + strong_agents + [agentUT]
+        agents = strong_agents + [agentUT]
         win_ratio = play_round(agents, NUM_MATCHES)
 
         print("\n\nResults:")
