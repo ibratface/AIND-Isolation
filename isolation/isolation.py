@@ -299,6 +299,16 @@ class Board(object):
 
         return out
 
+   def hash(self):
+        x1 = self.__last_player_move__[self.__player_1__]
+        x2 = self.__last_player_move__[self.__player_2__]
+        _board = list(map(lambda x: int(bool(x)),
+                          sum(map(list, zip(*self.__board_state__)), [])))
+        _board.append(self.move_count % 2)
+        _board.append(x2 if x2 is None else x2[0] + x2[1] * self.height)
+        _board.append(x1 if x1 is None else x1[0] + x1[1] * self.height)
+        return hash(str(_board))
+
     def play(self, time_limit=TIME_LIMIT_MILLIS):
         """
         Execute a match between the players by alternately soliciting them
@@ -343,11 +353,11 @@ class Board(object):
                 move_history[-1].append(curr_move)
 
             if move_end < 0:
-                print ("\nPLAYER TIMED OUT: {} : {}".format(self.__active_player__, move_end))
+                # print ("\nPLAYER TIMED OUT: {} : {}".format(self.__active_player__, move_end))
                 return self.__inactive_player__, move_history, "timeout"
 
             if curr_move not in legal_player_moves:
-                print ("\nPLAYER WON: {}".format(self.__inactive_player__))
+                # print ("\nPLAYER WON: {}".format(self.__inactive_player__))
                 return self.__inactive_player__, move_history, "illegal move"
 
             self.apply_move(curr_move)
