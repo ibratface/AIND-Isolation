@@ -28,8 +28,7 @@ class CustomPlayer:
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
         self.root = None
-        data = data if data else self.DEFAULTS
-        self.C = data.get('C', self.DEFAULTS['C'])
+        self.C = 0.3
         self.rollout = self.rollout_random
 
     def uct(self, node):
@@ -93,15 +92,16 @@ class CustomPlayer:
         self.time_left = time_left
         best_move = (-1, -1)
 
-        if game.move_count < 4:
-            self.root = Node()
-            self.expand(self.root, game)
-        elif self.root:
+        if self.root:
             # maintain consistency with game state
             # advance to the node that reflects game state
             opponent = game.get_opponent(self)
             opp_move = game.get_player_location(opponent)
             self.root = self.advance(self.root, opp_move)
+        else:
+            # new game, new node
+            self.root = Node()
+            self.expand(self.root, game)
 
         if self.root:
             # Do mcts while we have time
@@ -111,13 +111,15 @@ class CustomPlayer:
                 self.expand(node, state)
                 self.simulate(node, state)
 
-            # Pick the best move if any
             if self.root.children:
+                # If we haven't lost, make the best move
                 _, best_move = max([ (self.score(c), c.move) for c in self.root.children ])
                 # print ('SCORES: ', scores)
                 # print ('BEST_MOVE:', best_move)
                 self.root = self.advance(self.root, best_move)
         else:
+            # the opponent has no more moves
+            # make any move
             own_moves = game.get_legal_moves(self)
             if own_moves: best_move = own_moves[0]
 
