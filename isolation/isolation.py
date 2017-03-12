@@ -9,6 +9,7 @@ be available to project reviewers.
 """
 
 import timeit
+import time
 
 from copy import deepcopy
 from copy import copy
@@ -299,7 +300,7 @@ class Board(object):
 
         return out
 
-   def hash(self):
+    def hash(self):
         x1 = self.__last_player_move__[self.__player_1__]
         x2 = self.__last_player_move__[self.__player_2__]
         _board = list(map(lambda x: int(bool(x)),
@@ -329,7 +330,7 @@ class Board(object):
         """
         move_history = []
 
-        curr_time_millis = lambda: 1000 * timeit.default_timer()
+        curr_time_millis = lambda: 1000 * time.process_time()
 
         while True:
 
