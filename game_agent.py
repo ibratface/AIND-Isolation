@@ -19,16 +19,11 @@ class Node:
 
 class CustomPlayer:
 
-    DEFAULTS = {
-        'C': 0.3,
-        'rollout': 'random',
-    }
-
     def __init__(self, data=None, timeout=1.):
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
         self.root = None
-        self.C = 0.3
+        self.C = 0.8
         self.rollout = self.rollout_random
 
     def uct(self, node):
@@ -93,35 +88,27 @@ class CustomPlayer:
         best_move = (-1, -1)
 
         if self.root:
-            # maintain consistency with game state
-            # advance to the node that reflects game state
+            # attempt to maintain consistency with game
+            # advance to the node that reflects current game state
             opponent = game.get_opponent(self)
             opp_move = game.get_player_location(opponent)
             self.root = self.advance(self.root, opp_move)
-        else:
-            # new game, new node
+
+        if not self.root:
+            # new game state, new node
             self.root = Node()
             self.expand(self.root, game)
 
-        if self.root:
-            # Do mcts while we have time
-            while self.time_left() > self.TIMER_THRESHOLD:
-                node = self.select(self.root)
-                state = self.forward(game, node)
-                self.expand(node, state)
-                self.simulate(node, state)
+        while self.time_left() > self.TIMER_THRESHOLD:
+            node = self.select(self.root)
+            state = self.forward(game, node)
+            self.expand(node, state)
+            self.simulate(node, state)
 
-            if self.root.children:
-                # If we haven't lost, make the best move
-                _, best_move = max([ (self.score(c), c.move) for c in self.root.children ])
-                # print ('SCORES: ', scores)
-                # print ('BEST_MOVE:', best_move)
-                self.root = self.advance(self.root, best_move)
-        else:
-            # the opponent has no more moves
-            # make any move
-            own_moves = game.get_legal_moves(self)
-            if own_moves: best_move = own_moves[0]
+        if self.root.children:
+            # If we haven't lost, make the best move
+            _, best_move = max([ (self.score(c), c.move) for c in self.root.children ])
+            self.root = self.advance(self.root, best_move)
 
         # print ('BEST_MOVE:', best_move)
         # print (game.to_string())
