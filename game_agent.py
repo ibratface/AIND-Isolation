@@ -19,11 +19,11 @@ class Node:
 
 class CustomPlayer:
 
-    def __init__(self, data=0.8, timeout=1.):
+    def __init__(self, data=0.35, timeout=1.):
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
         self.root = None
-        self.C = data if data else 0.8
+        self.C = data if data else 0.35
         self.rollout = self.rollout_random
 
     def uct(self, node):
@@ -32,25 +32,15 @@ class CustomPlayer:
     def score(self, node):
         return node.utility / node.visits
 
-    def select(self, node):
+    def select(self, node, state):
         if not node.children:
             return node
 
         choice = next((c for c in node.children if c.visits == 0), None)
-        if choice: return choice
-
-        _, choice = max(((self.uct(c), c) for c in node.children), key=lambda x: x[0])
-        return self.select(choice)
-
-    def forward(self, state, node):
-        moves = []
-        while node.parent:
-            moves.append(node.move)
-            node = node.parent
-        forecast = state.copy()
-        for m in reversed(moves):
-            forecast.apply_move(m)
-        return forecast
+        if not choice:
+            _, choice = max(((self.uct(c), c) for c in node.children), key=lambda x: x[0])
+        state.apply_move(choice.move)
+        return self.select(choice, state)
 
     def expand(self, node, state):
         if not node.children:
@@ -100,8 +90,8 @@ class CustomPlayer:
             self.expand(self.root, game)
 
         while self.time_left() > self.TIMER_THRESHOLD:
-            node = self.select(self.root)
-            state = self.forward(game, node)
+            state = game.copy()
+            node = self.select(self.root, state)
             self.expand(node, state)
             self.simulate(node, state)
 
