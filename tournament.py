@@ -30,6 +30,7 @@ from collections import namedtuple
 from isolation import Board
 from sample_players import RandomPlayer
 from sample_players import GreedyPlayer
+from sample_players import HumanPlayer
 from sample_players import null_score
 from sample_players import open_move_score
 from sample_players import improved_score
@@ -38,7 +39,7 @@ from sample_players import custom_score, mcs_score, balanced_score, aggressive_s
 
 from game_agent import CustomPlayer
 
-NUM_MATCHES = 5  # number of matches against each opponent
+NUM_MATCHES = 10  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
 
 TIMEOUT_WARNING = "One or more agents lost a match this round due to " + \
@@ -163,6 +164,7 @@ def main():
 
     strong_agents = [
         Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
+        # Agent(HumanPlayer(), "Human")
         # Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
         ]
 
@@ -179,16 +181,22 @@ def main():
         # Agent(SamplePlayer(score_fn=mcs_score, **CUSTOM_ARGS), "Student MCS"),
         # Agent(SamplePlayer(score_fn=depth_score, **CUSTOM_ARGS), "Student Depth"),
         # Agent(CustomPlayer(), "Student MCTS Default")
+        # Agent(HeuristicPlayer(), "Student Heuristic")
     ]
 
-    # Cs = [0.35, 0.5, 0.65, 0.7, 0.75, 0.8, 0.9, 1.1]
-    # Cs = [0.65]
-    # data = [ {'C': c, 'policy': 'random'} for c in Cs ]
-    # mcts_agents = [ Agent(CustomPlayer(data=d), "Student MCTS C={}".format(d['C'])) for d in data]
+    # Cs = [0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0, 1.1]
+    Cs = [0.35]
+    mcts_agents = [ Agent(CustomPlayer(data=c), "Student MCTS C={}".format(c)) for c in Cs]
     # test_agents.extend(mcts_agents)
 
-    with open('data.json') as jsonfile:
-        test_agents.append(Agent(CustomPlayer(data=json.load(jsonfile), timeout=1.), "Student MCTS: JSONFILE"))
+    data = None
+    try:
+        with open('data.json') as jsonfile:
+            data = json.load(jsonfile)
+    except:
+        pass
+    player = CustomPlayer(data=data, timeout=1.)
+    test_agents.append(Agent(player, "Student MCTS: JSONFILE"))
 
 
     print(DESCRIPTION)
@@ -200,6 +208,7 @@ def main():
 
         # agents = random_agents + mm_agents + ab_agents + strong_agents + [agentUT]
         agents = strong_agents + [agentUT]
+        # agents = mcts_agents + [agentUT]
         win_ratio = play_round(agents, NUM_MATCHES)
 
         print("\n\nResults:")

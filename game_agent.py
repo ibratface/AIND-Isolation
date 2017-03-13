@@ -19,11 +19,11 @@ class Node:
 
 class CustomPlayer:
 
-    def __init__(self, data=None, timeout=1.):
+    def __init__(self, data=0.8, timeout=1.):
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
         self.root = None
-        self.C = 0.8
+        self.C = data if data else 0.8
         self.rollout = self.rollout_random
 
     def uct(self, node):
