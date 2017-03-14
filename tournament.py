@@ -39,7 +39,7 @@ from sample_players import custom_score, mcs_score, balanced_score, aggressive_s
 
 from game_agent import CustomPlayer
 
-NUM_MATCHES = 10  # number of matches against each opponent
+NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
 
 TIMEOUT_WARNING = "One or more agents lost a match this round due to " + \
@@ -186,7 +186,7 @@ def main():
 
     # Cs = [0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0, 1.1]
     Cs = [0.35]
-    mcts_agents = [ Agent(CustomPlayer(data=c), "Student MCTS C={}".format(c)) for c in Cs]
+    mcts_agents = [ Agent(CustomPlayer(data=None), "Student MCTS C={}".format(c)) for c in Cs]
     # test_agents.extend(mcts_agents)
 
     data = None
@@ -207,14 +207,17 @@ def main():
         print("*************************")
 
         # agents = random_agents + mm_agents + ab_agents + strong_agents + [agentUT]
-        agents = strong_agents + [agentUT]
-        # agents = mcts_agents + [agentUT]
+        # agents = strong_agents + [agentUT]
+        agents = mcts_agents + [agentUT]
         win_ratio = play_round(agents, NUM_MATCHES)
 
         print("\n\nResults:")
         print("----------")
         print("{!s:<15}{:>10.2f}%".format(agentUT.name, win_ratio))
 
+
+    # with open('data.json', 'w') as jsonfile:
+    #     json.dump(player.tree.to_dict(), jsonfile)
 
 if __name__ == "__main__":
     main()
